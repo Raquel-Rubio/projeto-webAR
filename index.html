@@ -39,7 +39,7 @@
             
             // Muda o tempo da animação de 0 para 1 (Descongela a animação)
             socorrista.setAttribute('animation-mixer', 'clip: mixamo.com; loop: repeat; timeScale: 1');
-            vitima.setAttribute('animation-mixer', 'clip: 1.; loop: repeat; timeScale: 1');
+            vitima.setAttribute('animation-mixer', 'clip: mixamo.com; loop: repeat; timeScale: 1');
             
             jaIniciou = true; // Impede que reinicie ao clicar de novo
           }
@@ -65,17 +65,17 @@
         position="0 0 0" 
         rotation="-90 0 0" 
         scale="1 1 1"
-        animation-mixer="clip: 1.; loop: repeat; timeScale: 0">
+        animation-mixer="clip: mixamo.com; loop: repeat; timeScale: 0">
       </a-entity>
 
-   <!-- <a-entity
+      <a-entity
         id="socorrista"
         gltf-model="url(socorrista.glb)" 
         position="0 0.5 -0.5" 
         rotation="0 0 0" 
         scale="1 1 1"
         animation-mixer="clip: mixamo.com; loop: repeat; timeScale: 0">
-      </a-entity> -->
+      </a-entity>
 
     </a-marker>
     

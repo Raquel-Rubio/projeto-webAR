@@ -11,18 +11,18 @@
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     
-    /* Instrução visual no ecrã para guiar o utilizador */
+    /* Caixa de instrução visual na tela */
     #instrucao {
       position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
       background: rgba(33, 150, 243, 0.9); color: white; padding: 15px 25px;
-      border-radius: 8px; text-align: center; font-size: 16px; font-weight: bold;
+      border-radius: 8px; text-align: center; font-size: 18px; font-weight: bold;
       z-index: 10; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      pointer-events: none; /* Garante que o toque passe através da caixa de texto */
+      cursor: pointer;
     }
   </style>
 
   <script>
-    // Componente JavaScript para detetar o toque no ecrã
+    // Componente JavaScript para detectar o toque na tela e dar o "Play"
     AFRAME.registerComponent('iniciar-por-toque', {
       init: function () {
         let socorrista = document.getElementById('socorrista');
@@ -30,17 +30,18 @@
         let instrucao = document.getElementById('instrucao');
         let jaIniciou = false;
 
-        // Ouve qualquer toque no ecrã do telemóvel ou clique do rato
+        // Fica aguardando qualquer toque na tela (ou clique)
         window.addEventListener('click', () => {
           if (!jaIniciou) {
-            // Remove o aviso do ecrã
-            instrucao.style.display = 'none';
+            // Remove o aviso da tela e pode colocar uma mensagem de feedback
+            instrucao.innerText = "Bipes sonoros - 100 BPM (Siga o ritmo!)";
+            instrucao.style.backgroundColor = "rgba(211, 47, 47, 0.9)"; // Muda para vermelho
             
-            // Inicia as animações atribuindo o nome exato de cada clip
-            socorrista.setAttribute('animation-mixer', 'clip: mixamo.com; loop: repeat');
-            vitima.setAttribute('animation-mixer', 'clip: 1.; loop: repeat');
+            // Muda o tempo da animação de 0 para 1 (Descongela a animação)
+            socorrista.setAttribute('animation-mixer', 'clip: mixamo.com; loop: repeat; timeScale: 1');
+            vitima.setAttribute('animation-mixer', 'clip: 1.; loop: repeat; timeScale: 1');
             
-            jaIniciou = true; // Impede que o código corra novamente se o utilizador clicar várias vezes
+            jaIniciou = true; // Impede que reinicie ao clicar de novo
           }
         });
       }
@@ -49,7 +50,7 @@
 </head>
 
 <body>
-  <div id="instrucao">Toque no ecrã para iniciar a RCP</div>
+  <div id="instrucao">Toque na tela para INICIAR RCP</div>
 
   <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" renderer="colorManagement: true;">
     
@@ -63,7 +64,8 @@
         gltf-model="url(vitima.glb)" 
         position="0 0 0" 
         rotation="-90 0 0" 
-        scale="1 1 1">
+        scale="1 1 1"
+        animation-mixer="clip: 1.; loop: repeat; timeScale: 0">
       </a-entity>
 
       <a-entity 
@@ -71,7 +73,8 @@
         gltf-model="url(socorrista.glb)" 
         position="0 0.5 -0.5" 
         rotation="0 0 0" 
-        scale="1 1 1">
+        scale="1 1 1"
+        animation-mixer="clip: mixamo.com; loop: repeat; timeScale: 0">
       </a-entity>
 
     </a-marker>

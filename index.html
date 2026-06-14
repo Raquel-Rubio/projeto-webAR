@@ -2,79 +2,30 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>MVP - Treinamento de RCP (1 Marcador)</title>
+  <title>Teste Simples - Animação Automática</title>
   
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
   
   <style>
-    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-    
-    /* Caixa de instrução visual na tela */
-    #instrucao {
-      position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
-      background: rgba(33, 150, 243, 0.9); color: white; padding: 15px 25px;
-      border-radius: 8px; text-align: center; font-size: 18px; font-weight: bold;
-      z-index: 10; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      cursor: pointer;
-    }
+    body { margin: 0; overflow: hidden; }
   </style>
-
-  <script>
-    // Componente JavaScript para detectar o toque na tela e dar o "Play"
-    AFRAME.registerComponent('iniciar-por-toque', {
-      init: function () {
-        let socorrista = document.getElementById('socorrista');
-        let vitima = document.getElementById('vitima');
-        let instrucao = document.getElementById('instrucao');
-        let jaIniciou = false;
-
-        // Fica aguardando qualquer toque na tela (ou clique)
-        window.addEventListener('click', () => {
-          if (!jaIniciou) {
-            // Remove o aviso da tela e pode colocar uma mensagem de feedback
-            instrucao.innerText = "Bipes sonoros - 100 BPM (Siga o ritmo!)";
-            instrucao.style.backgroundColor = "rgba(211, 47, 47, 0.9)"; // Muda para vermelho
-            
-            // Muda o tempo da animação de 0 para 1 (Descongela a animação)
-            socorrista.setAttribute('animation-mixer', 'clip: mixamo.com; loop: repeat; timeScale: 1');
-            vitima.setAttribute('animation-mixer', 'clip: mixamo.com; loop: repeat; timeScale: 1');
-            
-            jaIniciou = true; // Impede que reinicie ao clicar de novo
-          }
-        });
-      }
-    });
-  </script>
 </head>
 
 <body>
-  <div id="instrucao">Toque na tela para INICIAR RCP</div>
-
-  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" renderer="colorManagement: true;">
+  <a-scene embedded arjs="sourceType: webcam;" renderer="colorManagement: true;">
     
     <a-light type="ambient" color="#FFF" intensity="0.8"></a-light>
-    <a-light type="directional" intensity="0.6" position="-1 2 1"></a-light>
     
-    <a-marker preset="hiro" iniciar-por-toque>
+    <a-marker preset="hiro">
       
       <a-entity 
-        id="vitima"
-        gltf-model="url(vitima.glb)" 
-        position="0 0 0" 
-        rotation="-90 0 0" 
-        scale="1 1 1"
-        animation-mixer="clip: mixamo.com; loop: repeat; timeScale: 0">
-      </a-entity>
-
-      <a-entity
-        id="socorrista"
         gltf-model="url(socorrista.glb)" 
-        position="0 0.5 -0.5" 
-        rotation="0 0 0" 
-        scale="1 1 1"
-        animation-mixer="clip: mixamo.com; loop: repeat; timeScale: 0">
+        scale="1 1 1" 
+        position="0 0 0" 
+        rotation="0 0 0"
+        animation-mixer="clip: mixamo.com; loop: repeat">
       </a-entity>
 
     </a-marker>

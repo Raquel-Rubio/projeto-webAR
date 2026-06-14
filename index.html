@@ -4,16 +4,14 @@
   <meta charset="utf-8">
   <title>MVP - Treinamento de RCP</title>
   
-  <!-- Bibliotecas do A-Frame e AR.js -->
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <!-- Biblioteca extra para rodar as animações do Mixamo -->
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
   
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
     
-    /* Estilo do HUD baseado no seu protótipo de papel */
+    /* Estilo do HUD (Painel) */
     #painel {
       position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
       background: rgba(255, 255, 255, 0.95); padding: 20px;
@@ -32,7 +30,7 @@
   </style>
 
   <script>
-    // Componente JavaScript para controlar a interação do usuário
+    // Componente JavaScript para controlar a interação
     AFRAME.registerComponent('controle-rcp', {
       init: function () {
         let btn = document.getElementById('btn-iniciar');
@@ -40,15 +38,14 @@
         let socorrista = document.getElementById('socorrista');
         let vitima = document.getElementById('vitima');
 
-        // Fica aguardando o usuário clicar no botão "INICIAR RCP"
+        // Aguarda o clique no botão
         btn.addEventListener('click', () => {
-          // Esconde o botão e mostra o aviso de ritmo
+          // Esconde o botão e mostra o feedback na tela
           btn.classList.add('escondido');
           feedback.classList.remove('escondido');
           feedback.innerText = "Bipes sonoros - 100 BPM\n(Siga o ritmo!)";
 
-          // Ativa a animação dos dois modelos usando a propriedade "clip: *"
-          // O "*" faz com que o A-Frame toque a primeira animação que achar no arquivo .glb
+          // Ativa as animações com os nomes exatos mapeados
           socorrista.setAttribute('animation-mixer', 'clip: mixamo.com; loop: repeat');
           vitima.setAttribute('animation-mixer', 'clip: 1.; loop: repeat');
         });
@@ -58,23 +55,18 @@
 </head>
 
 <body>
-  <!-- Interface 2D (HUD) -->
   <div id="painel">
     <button id="btn-iniciar">INICIAR RCP</button>
     <div id="feedback" class="escondido"></div>
   </div>
 
-  <!-- Cena de Realidade Aumentada -->
   <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" renderer="colorManagement: true;">
     
     <a-light type="ambient" color="#FFF" intensity="0.8"></a-light>
+    <a-light type="directional" intensity="0.6" position="-1 2 1"></a-light>
     
-    <!-- Chamamos o nosso componente 'controle-rcp' aqui no marcador -->
     <a-marker preset="hiro" controle-rcp>
       
-      <!-- MODELO 1: Vítima -->
-      <!-- Renomeie url() para o nome exato do seu arquivo -->
-      <!-- Talvez você precise alterar o 'rotation' para que a vítima fique deitada (-90 0 0) -->
       <a-entity 
         id="vitima"
         gltf-model="url(vitima.glb)" 
@@ -83,9 +75,6 @@
         scale="1 1 1">
       </a-entity>
 
-      <!-- MODELO 2: Socorrista -->
-      <!-- Renomeie url() para o nome exato do seu arquivo -->
-      <!-- Altere 'position' e 'rotation' aos poucos até que as mãos encaixem no peito da vítima -->
       <a-entity 
         id="socorrista"
         gltf-model="url(socorrista.glb)" 

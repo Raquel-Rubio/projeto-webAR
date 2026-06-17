@@ -1,73 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
- <meta charset="utf-8">
- <title>AR -- modelos animados</title>
- <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
- <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
- <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
- <style>
-   body{margin:0;overflow:hidden}
-   #hud{position:fixed;top:8px;left:8px;padding:4px 8px;
-        background:#0008;color:#fff;font:14px Arial;border-radius:4px}
- </style>
- <script>
-   const TAM_MARCADOR = 0.11;   // 11 cm
-   const RAIO_LOGICO  = 0.075;  // 7,5 cm para limiar de 20 cm
-   AFRAME.registerComponent('prox-anim', {
-     init(){
-       this.hud = document.getElementById('hud');
-       this.p1  = new THREE.Vector3(); this.p2  = new THREE.Vector3();
-       this.perto = false;
-       this.mA = document.getElementById('mA');
-       this.mB = document.getElementById('mB');
-       /* garante que cada modelo comece em "Idle" após o carregamento */
-       ['mA','mB'].forEach(id=>{
-         document.getElementById(id).addEventListener('model-loaded', e=>{
-           e.target.setAttribute('animation-mixer','clip:Idle;loop:repeat');
-         });
-       });
-     },
-     tick(){
-       if(!this.mA.object3D.visible || !this.mB.object3D.visible){
-         this._trocar('Idle','Idle');
-         this.hud.textContent='-- cm';
-         return;
-       }
-       /* distância borda-a-borda em metros */
-       this.mA.object3D.getWorldPosition(this.p1);
-       this.mB.object3D.getWorldPosition(this.p2);
-       const d = this.p1.distanceTo(this.p2)*TAM_MARCADOR - 2*RAIO_LOGICO;
-       this.hud.textContent = (d*100).toFixed(1)+' cm';
-       const perto = d < 0.20;
-       if (perto !== this.perto){
-         this.perto = perto;
-         this._trocar(perto ? 'dance-01' : 'Idle', perto ? 'dance-02' : 'Idle');
-       }
-     },
-     _trocar(clipA, clipB){
-       this.mA.setAttribute('animation-mixer',`clip:${clipA};loop:repeat`);
-       this.mB.setAttribute('animation-mixer',`clip:${clipB};loop:repeat`);
-     }
-   });
- </script>
+  <meta charset="utf-8">
+  <title>Assistente de CPR - Realidade Aumentada</title>
+  
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+
+  <script>
+    AFRAME.registerComponent('sincroniza-cpr', {
+      schema: {
+        // Permite que você defina qual grupo de modelos este script vai controlar
+        alvos: { type: 'selectorAll' } 
+      },
+      init: function () {
+        // 1. Congela todos os modelos do grupo no frame 0
+        this.data.alvos.forEach(modelo => {
+          modelo.setAttribute('animation-mixer', {
+            clip: 'mixamo.com',
+            timeScale: 0,
+            loop: 'repeat'
+          });
+        });
+
+        // 2. Quando este elemento for clicado...
+        this.el.addEventListener('click', () => {
+          // Pega o estado atual do primeiro modelo do grupo para saber se está pausado ou rodando
+          const primeiroModelo = this.data.alvos[0];
+          const mixerAtual = primeiroModelo.getAttribute('animation-mixer');
+          
+          // Define a nova velocidade: se for 0, muda para 1. Se for 1, muda para 0.
+          const novaVelocidade = mixerAtual.timeScale === 0 ? 1 : 0;
+
+          // 3. Aplica o play/pause para ambos os personagens ao mesmo tempo
+          this.data.alvos.forEach(modelo => {
+            modelo.setAttribute('animation-mixer', 'timeScale', novaVelocidade);
+          });
+        });
+      }
+    });
+  </script>
 </head>
-<body>
-<span id="hud">-- cm</span>
-<a-scene   renderer="colorManagement:true; physicallyCorrectLights:true;
-                   toneMapping:ACESFilmic; exposure:1.25"
-           embedded arjs="sourceType: webcam;" prox-anim>
- <a-entity camera></a-entity>
- <!-- marcador Hiro -->
- <a-marker preset="hiro" size="0.11">
-   <a-entity id="mA" gltf-model="url(Michelle.glb)" scale="10 10 10"></a-entity>
- </a-marker>
- <!-- marcador Kanji -->
- <a-marker preset="kanji" size="0.11">
-   <a-entity id="mB" gltf-model="url(Michelle.glb)" scale="10 10 10"></a-entity>
- </a-marker>
- <a-light type="ambient"    color="#CCC"></a-light>
- <a-light type="directional" intensity="0.9" position="-1 2 1"></a-light>
-</a-scene>
+
+<body style="margin: 0; overflow: hidden;">
+  
+  <a-scene embedded arjs="sourceType: webcam;">
+    
+    <a-entity camera 
+              cursor="rayOrigin: mouse; fuse: false;" 
+              raycaster="objects: .interativo;">
+    </a-entity>
+
+    <a-marker preset="hiro">
+          
+      <a-entity id="socorrista"
+                class="interativo dupla-cpr" 
+                gltf-model="url(Martha.glb)"
+                position="0.054 0.007 0.095" 
+                sincroniza-cpr="alvos: .dupla-cpr"> </a-entity>
+
+      <a-entity id="paciente"
+                class="interativo dupla-cpr"
+                gltf-model="url(Sophie.glb)"
+                position="0.0 0 0" 
+                sincroniza-cpr="alvos: .dupla-cpr"> </a-entity>
+
+    </a-marker>
+
+    <a-light type="ambient" color="#BBB"></a-light>
+    <a-light type="directional" intensity="0.7" position="-1 2 1"></a-light>
+
+  </a-scene>
 </body>
 </html>

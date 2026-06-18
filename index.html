@@ -46,7 +46,7 @@
     }
   </style>
 
-  <script>
+<script>
   AFRAME.registerComponent('controlador-geral', {
     init: function () {
       this.btn = document.getElementById('btn-cpr');
@@ -55,12 +55,20 @@
       this.audio = new Audio('audio_bip.mp3');
       
       this.rodando = false;
-      this.idTempo = null; // Mudamos a variável para gerenciar setTimeout
+      this.idsTempo = []; // Agora usamos um array para guardar os 3 tempos do ciclo
 
       this.modelos.forEach(modelo => {
         modelo.addEventListener('model-loaded', () => {
-          modelo.setAttribute('animation-mixer', { clip: 'mixamo.com', timeScale: 0, loop: 'repeat' });
+          // O asterisco garante que qualquer nome de animação exportada do Blender funcione
+          modelo.setAttribute('animation-mixer', { clip: '*', timeScale: 0, loop: 'repeat' });
         });
+      });
+
+      // O SEGREDO DA SINCRONIA: Escuta quando o Blender volta para o Frame 0
+      this.modelos[0].addEventListener('animation-loop', () => {
+        if (this.rodando) {
+          this.tocarSequenciaBips();
+        }
       });
 
       this.marcador.addEventListener('markerFound', () => {
@@ -83,10 +91,8 @@
         this.pausarCPR(); 
       });
 
-      // Blindagem 1: Usar .onclick no lugar de addEventListener para matar toques fantasmas duplos do mobile
       this.btn.onclick = (e) => {
-        e.preventDefault(); // Impede comportamentos indesejados da tela touch
-        
+        e.preventDefault(); 
         if (this.rodando) {
           this.pausarCPR();
         } else {
@@ -102,12 +108,13 @@
       this.btn.innerText = "Pausar CPR";
       this.btn.style.backgroundColor = "#f44336"; 
 
+      // Quando clica em iniciar, obriga o modelo a voltar ao frame 0 para garantir a sincronia
       this.modelos.forEach(modelo => {
-        modelo.setAttribute('animation-mixer', 'timeScale', 1);
+        modelo.setAttribute('animation-mixer', { timeScale: 1, time: 0 });
       });
 
-      // Inicia a nova lógica de corrente de áudio
-      this.loopDeAudio();
+      // Dispara os bipes do primeiro ciclo
+      this.tocarSequenciaBips();
     },
 
     pausarCPR: function() {
@@ -123,24 +130,27 @@
         modelo.setAttribute('animation-mixer', 'timeScale', 0);
       });
 
-      // Quebra a corrente agendada imediatamente
-      if (this.idTempo) {
-        clearTimeout(this.idTempo);
-        this.idTempo = null;
-      }
+      // Cancela todos os bipes agendados para que não toquem enquanto estiver pausado
+      this.idsTempo.forEach(id => clearTimeout(id));
+      this.idsTempo = [];
     },
 
-    // Blindagem 2: Loop em corrente (setTimeout recursivo)
-    loopDeAudio: function() {
-      // Se tiver sido pausado, a execução morre aqui e o loop termina
-      if (!this.rodando) return;
+    // Nova Lógica: Agendamento exato para bater com os frames 0, 18, 36 e 54
+    tocarSequenciaBips: function() {
+      // Limpa tempos anteriores por segurança
+      this.idsTempo.forEach(id => clearTimeout(id));
+      this.idsTempo = [];
 
+      // Frame 0 (Imediato)
       this.tocarBip();
+      
+      // Frame 18 (600ms), Frame 36 (1200ms) e Frame 54 (1800ms)
+      this.idsTempo.push(setTimeout(() => this.tocarBip(), 600));
+      this.idsTempo.push(setTimeout(() => this.tocarBip(), 1200));
+      this.idsTempo.push(setTimeout(() => this.tocarBip(), 1800));
 
-      // Agenda APENAS O PRÓXIMO bip. Muito mais seguro que setInterval.
-      this.idTempo = setTimeout(() => {
-        this.loopDeAudio();
-      }, 600);
+      // Após o frame 54, não há mais bipes. O áudio fica em silêncio 
+      // esperando a animação terminar a respiração e disparar o 'animation-loop' novamente.
     },
 
     tocarBip: function() {

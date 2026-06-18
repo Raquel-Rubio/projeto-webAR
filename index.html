@@ -47,101 +47,108 @@
   </style>
 
   <script>
-    AFRAME.registerComponent('controlador-geral', {
-      init: function () {
-        this.btn = document.getElementById('btn-cpr');
-        this.marcador = document.querySelector('a-marker');
-        this.modelos = document.querySelectorAll('.dupla-cpr');
-        this.audio = new Audio('liecio-bip-sound-189733.mp3');
+  AFRAME.registerComponent('controlador-geral', {
+    init: function () {
+      this.btn = document.getElementById('btn-cpr');
+      this.marcador = document.querySelector('a-marker');
+      this.modelos = document.querySelectorAll('.dupla-cpr');
+      this.audio = new Audio('liecio-bip-sound-189733.mp3');
+      
+      this.rodando = false;
+      this.idTempo = null; // Mudamos a variável para gerenciar setTimeout
+
+      this.modelos.forEach(modelo => {
+        modelo.addEventListener('model-loaded', () => {
+          modelo.setAttribute('animation-mixer', { clip: 'mixamo.com', timeScale: 0, loop: 'repeat' });
+        });
+      });
+
+      this.marcador.addEventListener('markerFound', () => {
+        this.btn.disabled = false; 
         
-        this.rodando = false;
-        this.idIntervalo = null;
-
-        this.modelos.forEach(modelo => {
-          modelo.addEventListener('model-loaded', () => {
-            modelo.setAttribute('animation-mixer', { clip: 'mixamo.com', timeScale: 0, loop: 'repeat' });
-          });
-        });
-
-        this.marcador.addEventListener('markerFound', () => {
-          this.btn.disabled = false; 
-          
-          if (!this.rodando) {
-            this.btn.innerText = "Iniciar CPR";
-            this.btn.style.backgroundColor = "#4CAF50"; 
-          } else {
-            this.btn.innerText = "Pausar CPR";
-            this.btn.style.backgroundColor = "#f44336"; 
-          }
-        });
-
-        this.marcador.addEventListener('markerLost', () => {
-          this.btn.disabled = true; 
-          this.btn.innerText = "Procurando marcador...";
-          this.btn.style.backgroundColor = ""; 
-          
-          this.pausarCPR(); // Força a pausa absoluta ao perder a referência espacial
-        });
-
-        this.btn.addEventListener('click', () => {
-          if (this.rodando) {
-            this.pausarCPR();
-          } else {
-            this.iniciarCPR();
-          }
-        });
-      },
-
-      iniciarCPR: function() {
-        if (this.rodando) return; // Trava de segurança: impede instanciar se já estiver rodando
-        this.rodando = true;
-
-        this.btn.innerText = "Pausar CPR";
-        this.btn.style.backgroundColor = "#f44336"; 
-
-        this.modelos.forEach(modelo => {
-          modelo.setAttribute('animation-mixer', 'timeScale', 1);
-        });
-
-        // Limpeza rigorosa da memória antes de criar o novo relógio
-        if (this.idIntervalo) {
-          clearInterval(this.idIntervalo);
-        }
-        
-        this.tocarBip(); 
-        
-        this.idIntervalo = setInterval(() => {
-          this.tocarBip();
-        }, 600);
-      },
-
-      pausarCPR: function() {
-        if (!this.rodando) return; // Trava de segurança: não faz nada se já estiver pausado
-        this.rodando = false;
-
-        // Se pausou via botão (marcador achado), volta para verde.
-        if (!this.btn.disabled) {
+        if (!this.rodando) {
           this.btn.innerText = "Iniciar CPR";
           this.btn.style.backgroundColor = "#4CAF50"; 
+        } else {
+          this.btn.innerText = "Pausar CPR";
+          this.btn.style.backgroundColor = "#f44336"; 
         }
+      });
 
-        this.modelos.forEach(modelo => {
-          modelo.setAttribute('animation-mixer', 'timeScale', 0);
-        });
+      this.marcador.addEventListener('markerLost', () => {
+        this.btn.disabled = true; 
+        this.btn.innerText = "Procurando marcador...";
+        this.btn.style.backgroundColor = ""; 
+        
+        this.pausarCPR(); 
+      });
 
-        // Mata o relógio e libera o ID garantindo que o áudio pare completamente
-        if (this.idIntervalo) {
-          clearInterval(this.idIntervalo);
-          this.idIntervalo = null;
+      // Blindagem 1: Usar .onclick no lugar de addEventListener para matar toques fantasmas duplos do mobile
+      this.btn.onclick = (e) => {
+        e.preventDefault(); // Impede comportamentos indesejados da tela touch
+        
+        if (this.rodando) {
+          this.pausarCPR();
+        } else {
+          this.iniciarCPR();
         }
-      },
+      };
+    },
 
-      tocarBip: function() {
-        this.audio.currentTime = 0; 
-        this.audio.play().catch(e => console.log("Áudio bloqueado pelo navegador:", e));
+    iniciarCPR: function() {
+      if (this.rodando) return; 
+      this.rodando = true;
+
+      this.btn.innerText = "Pausar CPR";
+      this.btn.style.backgroundColor = "#f44336"; 
+
+      this.modelos.forEach(modelo => {
+        modelo.setAttribute('animation-mixer', 'timeScale', 1);
+      });
+
+      // Inicia a nova lógica de corrente de áudio
+      this.loopDeAudio();
+    },
+
+    pausarCPR: function() {
+      if (!this.rodando) return; 
+      this.rodando = false;
+
+      if (!this.btn.disabled) {
+        this.btn.innerText = "Iniciar CPR";
+        this.btn.style.backgroundColor = "#4CAF50"; 
       }
-    });
-  </script>
+
+      this.modelos.forEach(modelo => {
+        modelo.setAttribute('animation-mixer', 'timeScale', 0);
+      });
+
+      // Quebra a corrente agendada imediatamente
+      if (this.idTempo) {
+        clearTimeout(this.idTempo);
+        this.idTempo = null;
+      }
+    },
+
+    // Blindagem 2: Loop em corrente (setTimeout recursivo)
+    loopDeAudio: function() {
+      // Se tiver sido pausado, a execução morre aqui e o loop termina
+      if (!this.rodando) return;
+
+      this.tocarBip();
+
+      // Agenda APENAS O PRÓXIMO bip. Muito mais seguro que setInterval.
+      this.idTempo = setTimeout(() => {
+        this.loopDeAudio();
+      }, 600);
+    },
+
+    tocarBip: function() {
+      this.audio.currentTime = 0; 
+      this.audio.play().catch(e => console.log("Áudio bloqueado:", e));
+    }
+  });
+</script>
 </head>
 
 <body style="margin: 0; overflow: hidden;">

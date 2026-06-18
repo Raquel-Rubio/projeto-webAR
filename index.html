@@ -48,6 +48,7 @@
 
 <script>
   // Script para forçar os materiais a serem 100% opacos, corrigindo o bug do Blender
+  // Script inteligente: força opacidade na roupa/corpo, mas preserva cílios e cabelos
   AFRAME.registerComponent('forca-opaco', {
     init: function () {
       this.el.addEventListener('model-loaded', () => {
@@ -55,8 +56,28 @@
         if (obj) {
           obj.traverse((node) => {
             if (node.isMesh && node.material) {
-              node.material.transparent = false;
-              node.material.depthWrite = true;
+              
+              // Pega o nome da malha e do material e converte para minúsculo para facilitar a busca
+              const nome = node.name.toLowerCase();
+              const nomeMaterial = node.material.name.toLowerCase();
+
+              // Se a parte do corpo for Cílios (eyelash) ou Cabelo (hair)...
+              if (nome.includes('eyelash') || nome.includes('hair') || nomeMaterial.includes('eyelash') || nomeMaterial.includes('hair')) {
+                
+                // Mantém a transparência ativada
+                node.material.transparent = true;
+                
+                // O alphaTest "corta" as bordas borradas/brancas, deixando os fios nítidos
+                node.material.alphaTest = 0.5; 
+                node.material.depthWrite = true;
+                
+              } else {
+                
+                // Se for corpo, pele, sapato ou roupa, aplica a força bruta (sólido)
+                node.material.transparent = false;
+                node.material.depthWrite = true;
+                
+              }
             }
           });
         }

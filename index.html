@@ -47,6 +47,24 @@
   </style>
 
 <script>
+  // Script para forçar os materiais a serem 100% opacos, corrigindo o bug do Blender
+  AFRAME.registerComponent('forca-opaco', {
+    init: function () {
+      this.el.addEventListener('model-loaded', () => {
+        const obj = this.el.getObject3D('mesh');
+        if (obj) {
+          obj.traverse((node) => {
+            if (node.isMesh && node.material) {
+              node.material.transparent = false;
+              node.material.depthWrite = true;
+            }
+          });
+        }
+      });
+    }
+  });
+
+  // Script principal de controle das animações e bipes
   AFRAME.registerComponent('controlador-geral', {
     init: function () {
       this.btn = document.getElementById('btn-cpr');
@@ -55,16 +73,14 @@
       this.audio = new Audio('audio_bip.mp3');
       
       this.rodando = false;
-      this.idsTempo = []; // Agora usamos um array para guardar os 3 tempos do ciclo
+      this.idsTempo = []; 
 
       this.modelos.forEach(modelo => {
         modelo.addEventListener('model-loaded', () => {
-          // O asterisco garante que qualquer nome de animação exportada do Blender funcione
           modelo.setAttribute('animation-mixer', { clip: '*', timeScale: 0, loop: 'repeat' });
         });
       });
 
-      // O SEGREDO DA SINCRONIA: Escuta quando o Blender volta para o Frame 0
       this.modelos[0].addEventListener('animation-loop', () => {
         if (this.rodando) {
           this.tocarSequenciaBips();
@@ -108,12 +124,10 @@
       this.btn.innerText = "Pausar CPR";
       this.btn.style.backgroundColor = "#f44336"; 
 
-      // Quando clica em iniciar, obriga o modelo a voltar ao frame 0 para garantir a sincronia
       this.modelos.forEach(modelo => {
         modelo.setAttribute('animation-mixer', { timeScale: 1, time: 0 });
       });
 
-      // Dispara os bipes do primeiro ciclo
       this.tocarSequenciaBips();
     },
 
@@ -130,27 +144,19 @@
         modelo.setAttribute('animation-mixer', 'timeScale', 0);
       });
 
-      // Cancela todos os bipes agendados para que não toquem enquanto estiver pausado
       this.idsTempo.forEach(id => clearTimeout(id));
       this.idsTempo = [];
     },
 
-    // Nova Lógica: Agendamento exato para bater com os frames 0, 18, 36 e 54
     tocarSequenciaBips: function() {
-      // Limpa tempos anteriores por segurança
       this.idsTempo.forEach(id => clearTimeout(id));
       this.idsTempo = [];
 
-      // Frame 0 (Imediato)
       this.tocarBip();
       
-      // Frame 18 (600ms), Frame 36 (1200ms) e Frame 54 (1800ms)
       this.idsTempo.push(setTimeout(() => this.tocarBip(), 600));
       this.idsTempo.push(setTimeout(() => this.tocarBip(), 1200));
       this.idsTempo.push(setTimeout(() => this.tocarBip(), 1800));
-
-      // Após o frame 54, não há mais bipes. O áudio fica em silêncio 
-      // esperando a animação terminar a respiração e disparar o 'animation-loop' novamente.
     },
 
     tocarBip: function() {
@@ -167,7 +173,7 @@
     <button id="btn-cpr" disabled>Procurando marcador...</button>
   </div>
 
-  <a-scene embedded arjs="sourceType: webcam;" controlador-geral>
+  <a-scene embedded arjs="sourceType: webcam;" controlador-geral renderer="logarithmicDepthBuffer: true;">
     
     <a-entity camera></a-entity>
 
@@ -177,14 +183,16 @@
                 class="dupla-cpr" 
                 gltf-model="url(Martha.glb)"
                 position="0 0 0"
-                scale="9 9 9"> 
+                scale="9 9 9"
+                forca-opaco> 
       </a-entity>
 
       <a-entity id="paciente"
                 class="dupla-cpr"
                 gltf-model="url(Sophie.glb)"
                 position="-0.054 -0.007 -0.095"
-                scale="9 9 9"> 
+                scale="9 9 9"
+                forca-opaco> 
       </a-entity>
 
     </a-marker>

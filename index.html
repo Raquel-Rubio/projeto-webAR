@@ -16,17 +16,17 @@
       display: flex;
       justify-content: center;
       z-index: 999;
-      pointer-events: none; /* Permite que toques fora do botão passem para a cena 3D */
+      pointer-events: none; 
     }
     
     #btn-cpr {
-      pointer-events: auto; /* Reativa o clique apenas no botão */
+      pointer-events: auto; 
       padding: 15px 40px;
       font-size: 20px;
       font-family: Arial, sans-serif;
       font-weight: bold;
       color: white;
-      background-color: #4CAF50; /* Verde inicial */
+      background-color: #4CAF50; 
       border: none;
       border-radius: 50px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
@@ -38,96 +38,106 @@
       transform: scale(0.95);
     }
 
-    /* Estilo para quando o botão estiver desabilitado (sem marcador) */
     #btn-cpr:disabled {
-      background-color: #9e9e9e; /* Fica cinza */
-      cursor: not-allowed;       /* Muda o ícone do mouse no PC */
+      background-color: #9e9e9e; 
+      cursor: not-allowed;       
       opacity: 0.8;
-      transform: none;           /* Desativa o efeito de afundar no clique */
+      transform: none;           
     }
   </style>
 
   <script>
     AFRAME.registerComponent('controlador-geral', {
       init: function () {
-        // Mapeamento dos elementos
         this.btn = document.getElementById('btn-cpr');
         this.marcador = document.querySelector('a-marker');
         this.modelos = document.querySelectorAll('.dupla-cpr');
-        
-        // Instancia o áudio enviado
         this.audio = new Audio('liecio-bip-sound-189733.mp3');
         
         this.rodando = false;
         this.idIntervalo = null;
 
-        // 1. Aguarda os modelos carregarem para congelá-los no frame 0
         this.modelos.forEach(modelo => {
           modelo.addEventListener('model-loaded', () => {
-            modelo.setAttribute('animation-mixer', {
-              clip: 'mixamo.com',
-              timeScale: 0,
-              loop: 'repeat'
-            });
+            modelo.setAttribute('animation-mixer', { clip: 'mixamo.com', timeScale: 0, loop: 'repeat' });
           });
         });
 
-        // 2. Controla a visibilidade/estado do HUD baseado no rastreamento
         this.marcador.addEventListener('markerFound', () => {
-          this.btn.disabled = false; // Habilita o clique
+          this.btn.disabled = false; 
           
-          // Se a animação não estiver rodando, exibe o texto para iniciar
           if (!this.rodando) {
             this.btn.innerText = "Iniciar CPR";
-            this.btn.style.backgroundColor = "#4CAF50"; // Verde
+            this.btn.style.backgroundColor = "#4CAF50"; 
+          } else {
+            this.btn.innerText = "Pausar CPR";
+            this.btn.style.backgroundColor = "#f44336"; 
           }
         });
 
         this.marcador.addEventListener('markerLost', () => {
-          this.btn.disabled = true; // Desabilita o clique
+          this.btn.disabled = true; 
           this.btn.innerText = "Procurando marcador...";
-          this.btn.style.backgroundColor = ""; // Remove a cor inline para aplicar o cinza do CSS
+          this.btn.style.backgroundColor = ""; 
           
-          // Pausa a animação e o som automaticamente se o usuário desviar a câmera
-          if (this.rodando) {
-            this.alternarEstado();
-          }
+          this.pausarCPR(); // Força a pausa absoluta ao perder a referência espacial
         });
 
-        // 3. Lógica principal: Clique no botão do HUD
         this.btn.addEventListener('click', () => {
-          this.alternarEstado();
+          if (this.rodando) {
+            this.pausarCPR();
+          } else {
+            this.iniciarCPR();
+          }
         });
       },
 
-      alternarEstado: function() {
-        this.rodando = !this.rodando;
+      iniciarCPR: function() {
+        if (this.rodando) return; // Trava de segurança: impede instanciar se já estiver rodando
+        this.rodando = true;
 
-        // Muda o visual e texto do botão
-        this.btn.innerText = this.rodando ? "Pausar CPR" : "Iniciar CPR";
-        this.btn.style.backgroundColor = this.rodando ? "#f44336" : "#4CAF50"; // Vermelho(Pausa) / Verde(Iniciar)
+        this.btn.innerText = "Pausar CPR";
+        this.btn.style.backgroundColor = "#f44336"; 
 
-        // Aplica Play/Pause nas animações
         this.modelos.forEach(modelo => {
-          modelo.setAttribute('animation-mixer', 'timeScale', this.rodando ? 1 : 0);
+          modelo.setAttribute('animation-mixer', 'timeScale', 1);
         });
 
-        // Gerencia o áudio de 100 BPM
-        if (this.rodando) {
-          this.tocarBip(); // Toca o primeiro som imediatamente no clique
-          
-          // 100 BPM = 60 batidas por minuto = 60000ms / 100 = 600ms
-          this.idIntervalo = setInterval(() => {
-            this.tocarBip();
-          }, 600);
-        } else {
-          // Para o relógio interno do bip
+        // Limpeza rigorosa da memória antes de criar o novo relógio
+        if (this.idIntervalo) {
           clearInterval(this.idIntervalo);
+        }
+        
+        this.tocarBip(); 
+        
+        this.idIntervalo = setInterval(() => {
+          this.tocarBip();
+        }, 600);
+      },
+
+      pausarCPR: function() {
+        if (!this.rodando) return; // Trava de segurança: não faz nada se já estiver pausado
+        this.rodando = false;
+
+        // Se pausou via botão (marcador achado), volta para verde.
+        if (!this.btn.disabled) {
+          this.btn.innerText = "Iniciar CPR";
+          this.btn.style.backgroundColor = "#4CAF50"; 
+        }
+
+        this.modelos.forEach(modelo => {
+          modelo.setAttribute('animation-mixer', 'timeScale', 0);
+        });
+
+        // Mata o relógio e libera o ID garantindo que o áudio pare completamente
+        if (this.idIntervalo) {
+          clearInterval(this.idIntervalo);
+          this.idIntervalo = null;
         }
       },
 
       tocarBip: function() {
-        this.audio.currentTime = 0; // Reseta o áudio para não sobrepor se clicar rápido
+        this.audio.currentTime = 0; 
         this.audio.play().catch(e => console.log("Áudio bloqueado pelo navegador:", e));
       }
     });
@@ -149,13 +159,15 @@
       <a-entity id="socorrista"
                 class="dupla-cpr" 
                 gltf-model="url(Martha.glb)"
-                position="0.054 0.007 0.095"> 
+                position="2.054 2.007 0.095"
+                scale="10 10 10"> 
       </a-entity>
 
       <a-entity id="paciente"
                 class="dupla-cpr"
                 gltf-model="url(Sophie.glb)"
-                position="0.0 0 0"> 
+                position="2 2 0"
+                scale="10 10 10"> 
       </a-entity>
 
     </a-marker>
